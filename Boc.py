@@ -15,4 +15,4 @@ for row in soup.findAll('li'):
     disasters.append(row.text)
 df = pd.DataFrame(disasters, columns =['raw'])
 
-print disasters
+print(disasters)
