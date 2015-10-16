@@ -3,3 +3,4 @@ Look at these web sites
 https://www.zumper.com/
 https://livelovely.com/
 
+http://cewing.github.io/training.codefellows/assignments/day11/scraper.html
