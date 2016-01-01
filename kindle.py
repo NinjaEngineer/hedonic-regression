@@ -1,5 +1,5 @@
 from pyzillow.pyzillow import ZillowWrapper, GetDeepSearchResults
-from BeautifulSoup import BeautifulSoup
+from bs4 import BeautifulSoup
 import requests
 import pyexcel
 
@@ -7,7 +7,7 @@ url = 'http://www.zillow.com/homes/for_rent/FL/apartment_duplex_type/14_rid/feat
 response = requests.get(url)
 html = response.content
 
-soup = BeautifulSoup(html)
+soup = BeautifulSoup(html, "lxml")
 list1 = soup.findAll('span', {'itemprop' : 'streetAddress'})
 list2 = soup.findAll('span', {'itemprop' : 'postalCode'})
 list10 = []
@@ -24,7 +24,7 @@ list6 = []
 list7 = []
 list9 = []
 for i in range (0,len(list10)):
-    deep_search_response = zillow_data.get_deep_search_results(list10[i],list11[i])
+    deep_search_response = zillow_data.get_deep_search_results(list10[i], list11[i])
     result = GetDeepSearchResults(deep_search_response)
     #print(result.get_attr('home_detail_link'))
 
@@ -49,5 +49,9 @@ list3 = []
 for i in range(0,len(list9)):
     list3.append([list9[i], list6[i], list7[i]])
 
+print(list4[0])
+print(list8[0])
+print(list5[0])
+
 s1 = pyexcel.Sheet(list3)
-s1.save_as('info.csv')
+s1.save_as('info1.csv')
