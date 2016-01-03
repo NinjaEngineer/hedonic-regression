@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 
 apt_location_pages = []
 
+
 def create_apt_list(locations):
     for location in locations:
         loc_link = 'http://www.trulia.com/for_rent/' + location + '/APARTMENT_COMMUNITY_type'
@@ -20,11 +21,6 @@ def create_apt_list(locations):
                 page += 1
         except AttributeError:
             print("Problem Here: " + location)
-
-        # elif doc.find(class_='col cols16 mts txtC srpPagination_list').text.strip() == "1":
-        #         apt_location_pages.append('http://www.trulia.com/for_rent/' + location +
-        #                                   '/APARTMENT_COMMUNITY_type/' + str(page) + '_p')
-
 
 
 def fetch_search_results(query=None, minAsk=None, maxAsk=None, bedrooms=None, location=None):
@@ -88,7 +84,6 @@ if __name__ == '__main__':
                  'Winter_Haven,FL', 'Palm_Bay,FL', 'Melbourne,FL', 'Titusville,FL', 'Tallahassee,FL', 'Ocala,FL',
                  'Daytona_Beach,FL', 'Pensacola,FL', 'Gainesville,FL', 'Port_Saint_Lucie,FL']
     create_apt_list(locations)
-    print(apt_location_pages)
     with open(os.path.join(os.path.dirname(__file__), 'listings.csv'), "w", newline='\n') as csvfile:
         writer = csv.writer(csvfile, delimiter=' ', quotechar=' ', quoting=csv.QUOTE_MINIMAL)
         writer.writerow("Price,Sqft,Place,Address,Bedrooms,Bathrooms,SpecialAttribute,Location") # ,Link")
@@ -102,5 +97,5 @@ if __name__ == '__main__':
                 i = 0
                 while i < len(listings):
                     write_listing(listings[i])
+                    print("Writing " + listings[i] + " to a comma separated file")
                     i += 1
-    #print(doc.prettify(encoding=encoding))
