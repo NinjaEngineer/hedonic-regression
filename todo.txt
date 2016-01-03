@@ -1,3 +1,16 @@
+
+
+
+- scrape multiple pages ex miami
+- transform words ex "Pet Friendly" into integers for column values (easy)
+- remove duplicates
+- sqllite
+- scrape descriptive pages
+- join table for descriptive pages
+- add timestamps
+- join table for counties
+
+
 Look at these web sites
 
 https://www.zumper.com/

@@ -1,19 +1,45 @@
-import requests
+import requests, sys, os, csv, time, sqlite3
+from random import randint
 from bs4 import BeautifulSoup
-import sys, os, csv
 
-def fetch_search_results(query=None, minAsk=None, maxAsk=None, bedrooms=None):
+apt_location_pages = []
+
+def create_apt_list(locations):
+    for location in locations:
+        loc_link = 'http://www.trulia.com/for_rent/' + location + '/APARTMENT_COMMUNITY_type'
+        html, encoding = fetch_search_results(minAsk=500, maxAsk=1000, bedrooms=2, location=loc_link)
+        doc = parse_source(html, encoding)
+        #if doc.find(class_='col cols16 mts txtC srpPagination_list').text.strip() != "1":
+        try:
+            print("checking for multiple pages of listings in " + location)
+            pages = int(doc.find(class_='col cols16 mts txtC srpPagination_list').text.strip()[-1])
+            page = 1
+            while page <= pages:
+                apt_location_pages.append('http://www.trulia.com/for_rent/' + location +
+                                          '/APARTMENT_COMMUNITY_type/' + str(page) + '_p')
+                page += 1
+        except AttributeError:
+            print("Problem Here: " + location)
+
+        # elif doc.find(class_='col cols16 mts txtC srpPagination_list').text.strip() == "1":
+        #         apt_location_pages.append('http://www.trulia.com/for_rent/' + location +
+        #                                   '/APARTMENT_COMMUNITY_type/' + str(page) + '_p')
+
+
+
+def fetch_search_results(query=None, minAsk=None, maxAsk=None, bedrooms=None, location=None):
     search_params = {key: val for key, val in locals().items() if val is not None}
     if not search_params:
         raise ValueError("No valid keywords")
-    base = 'http://www.trulia.com/for_rent/Lakeland,FL/APARTMENT_COMMUNITY_type'
+    base = location
     resp = requests.get(base, params=search_params, timeout=3)
     resp.raise_for_status()
+    time.sleep(randint(0, 4))
     return resp.content, resp.encoding
 
 
 def read_search_results():
-    return print("break")
+    return print("break"), print("possibly do this later")
 
 
 def parse_source(html, encoding='utf-8'):
@@ -38,37 +64,43 @@ def find_stripped(soup): #, what):
 # I am aware this function does too much stuff
 def write_listing(apt):
     specialAttr = find_stripped(apt.find("small", class_="typeCaps typeEmphasize mrm h7"))
-    place = apt.find("div", class_="man typeTruncate").text.strip()
-    address = apt.find(itemprop="streetAddress").text.strip() + apt.find(itemprop="addressLocality").text.strip() + \
-        " " + apt.find(itemprop="postalCode").text.strip()
+    place = find_stripped(apt.find("div", class_="man typeTruncate"))
+    address = find_stripped(apt.find(itemprop="streetAddress")) + find_stripped(apt.find(itemprop="addressLocality")) +\
+        " " + find_stripped(apt.find(itemprop="postalCode"))
     #link = apt.find("a", "primaryLink pdpLink activeLink").text.strip()
-    location = apt.find(itemprop="addressLocality").text.strip()
+    location = find_stripped(apt.find(itemprop="addressLocality"))
 
     aptTypes = apt.find_all("div", class_="col cols17")
     for aptType in aptTypes:
-        bedrooms = aptType.find("div", class_="txtL col cols7").text.strip()
-        bathrooms = aptType.find("div", class_="txtC col cols4").text.strip()
-        sqft = aptType.find("div", class_="txtC col cols6").text.strip()
+        bedrooms = find_stripped(aptType.find("div", class_="txtL col cols7"))
+        bathrooms = find_stripped(aptType.find("div", class_="txtC col cols4"))
+        sqft = find_stripped(aptType.find("div", class_="txtC col cols6"))
         price = aptType.find_all("div", class_="txtC col cols6")[1].text.strip()
-        writer.writerow(price + ", " + sqft + ", " + place + ", " + address.replace(",", " ") + ", " +
-                        bedrooms + ", " + bathrooms + ", " + specialAttr + ", " + location) # + ", " + link)
+        writer.writerow(price + "," + sqft + "," + place + "," + address.replace(",", " ") + "," +
+                        bedrooms + "," + bathrooms + "," + specialAttr + "," + location) # + ", " + link)
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1 and sys.argv[1] == 'test':
-        html, encoding = read_search_results()
-    else:
-        html, encoding = fetch_search_results(minAsk=500, maxAsk=1000, bedrooms=2)
-    doc = parse_source(html, encoding)
-    listings = extract_listings(doc)
-    with open(os.path.join(os.path.dirname(__file__) + 'listings.csv'), "w", newline='\n') as csvfile:
+
+    locations = ['Miami,FL', 'Fort_Lauderdale,FL', 'West_Palm_Beach,FL', 'Tampa,FL',
+                 'Saint_Petersburg,FL', 'Clearwater,FL', 'Orlando,FL', 'Kissimmee,FL', 'Sanford,FL', 'Jacksonville,FL',
+                 'North_Port,FL', 'Bradenton,FL', 'Sarasota,FL', 'Cape_Coral,FL', 'Fort_Myers,FL', 'Lakeland,FL',
+                 'Winter_Haven,FL', 'Palm_Bay,FL', 'Melbourne,FL', 'Titusville,FL', 'Tallahassee,FL', 'Ocala,FL',
+                 'Daytona_Beach,FL', 'Pensacola,FL', 'Gainesville,FL', 'Port_Saint_Lucie,FL']
+    create_apt_list(locations)
+    print(apt_location_pages)
+    with open(os.path.join(os.path.dirname(__file__), 'listings.csv'), "w", newline='\n') as csvfile:
         writer = csv.writer(csvfile, delimiter=' ', quotechar=' ', quoting=csv.QUOTE_MINIMAL)
-        writer.writerow("Price, Sqft, Place, Address, Bedrooms, Bathrooms, SpecialAttribute, Location, Link")
-        #print(listings.find("small", class_="typeCaps typeEmphasize mrm h7"))
-        i = 0
-        while i < len(listings):
-           write_listing(listings[i])
-           i += 1
-
-
+        writer.writerow("Price,Sqft,Place,Address,Bedrooms,Bathrooms,SpecialAttribute,Location") # ,Link")
+        for metro in apt_location_pages:
+            if len(sys.argv) > 1 and sys.argv[1] == 'test':
+                html, encoding = read_search_results()
+            else:
+                html, encoding = fetch_search_results(minAsk=500, maxAsk=1000, bedrooms=2, location=metro)
+                doc = parse_source(html, encoding)
+                listings = extract_listings(doc)
+                i = 0
+                while i < len(listings):
+                    write_listing(listings[i])
+                    i += 1
     #print(doc.prettify(encoding=encoding))
