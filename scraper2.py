@@ -3,7 +3,8 @@ from random import randint
 from bs4 import BeautifulSoup
 
 apt_location_pages = []
-
+conn = sqlite3.connect("apartment_data.db")
+c = conn.cursor()
 
 def create_apt_list(locations):
     for location in locations:
@@ -12,7 +13,7 @@ def create_apt_list(locations):
         doc = parse_source(html, encoding)
         #if doc.find(class_='col cols16 mts txtC srpPagination_list').text.strip() != "1":
         try:
-            print("checking for multiple pages of listings in " + location)
+            print("Checking for multiple pages of listings in " + location)
             pages = int(doc.find(class_='col cols16 mts txtC srpPagination_list').text.strip()[-1])
             page = 1
             while page <= pages:
@@ -63,21 +64,36 @@ def write_listing(apt):
     place = find_stripped(apt.find("div", class_="man typeTruncate"))
     address = find_stripped(apt.find(itemprop="streetAddress")) + find_stripped(apt.find(itemprop="addressLocality")) +\
         " " + find_stripped(apt.find(itemprop="postalCode"))
+    xAddress = find_stripped(apt.find(itemprop="streetAddress")).replace(",","")
+    xlocale = find_stripped(apt.find(itemprop="addressLocality"))
+    xZip = find_stripped(apt.find(itemprop="postalCode"))
     #link = apt.find("a", "primaryLink pdpLink activeLink").text.strip()
     location = find_stripped(apt.find(itemprop="addressLocality"))
-
     aptTypes = apt.find_all("div", class_="col cols17")
     for aptType in aptTypes:
         bedrooms = find_stripped(aptType.find("div", class_="txtL col cols7"))
+        if bedrooms == "Studio":
+            xbedrooms = "0"
+        else:
+            xbedrooms = bedrooms[0]
         bathrooms = find_stripped(aptType.find("div", class_="txtC col cols4"))
+        xbathrooms = bathrooms[0]
         sqft = find_stripped(aptType.find("div", class_="txtC col cols6"))
+        xsqft = sqft.replace("+", "")[:-4]
         price = aptType.find_all("div", class_="txtC col cols6")[1].text.strip()
+        xprice = price.replace("+", "")[1:-3]
         writer.writerow(price + "," + sqft + "," + place + "," + address.replace(",", " ") + "," +
                         bedrooms + "," + bathrooms + "," + specialAttr + "," + location) # + ", " + link)
+        xInsert = [xprice, xsqft, place, xAddress, xZip, xlocale, xbedrooms, xbathrooms, specialAttr, location]
+        c.execute("INSERT INTO aptSummary (price, sqft, place, address, zip, locale, bedrooms, bathrooms, specAttr, "
+                  "location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", xInsert)
+        # c.execute("INSERT INTO aptSummary (price, sqft, place, address, zip, locale, bedrooms, bathrooms, specAttr, "
+        #           "location) VALUES (" + xprice + ", " + xsqft + ", " + place + ", " + xAddress + ", " + xZip +
+        #           ", " + xlocale + ", " + xbedrooms + ", " + xbathrooms + ", " + specialAttr + ", " + location + ");")
+        conn.commit()
 
 
 if __name__ == '__main__':
-
     locations = ['Miami,FL', 'Fort_Lauderdale,FL', 'West_Palm_Beach,FL', 'Tampa,FL',
                  'Saint_Petersburg,FL', 'Clearwater,FL', 'Orlando,FL', 'Kissimmee,FL', 'Sanford,FL', 'Jacksonville,FL',
                  'North_Port,FL', 'Bradenton,FL', 'Sarasota,FL', 'Cape_Coral,FL', 'Fort_Myers,FL', 'Lakeland,FL',
@@ -97,5 +113,7 @@ if __name__ == '__main__':
                 i = 0
                 while i < len(listings):
                     write_listing(listings[i])
-                    print("Writing " + listings[i] + " to a comma separated file")
+                    print("Scraping " + metro + "\n extracting, translating, and exporting to a comma separated"
+                                                " file and inserting into a sqlite table")
                     i += 1
+    conn.close()
