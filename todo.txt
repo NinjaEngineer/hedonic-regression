@@ -3,12 +3,12 @@
 
 X scrape multiple pages ex miami
 - transform words ex "Pet Friendly" into integers for column values (easy)
-- remove duplicates
+X remove duplicates
 X sqllite
 - scrape descriptive pages
 - join table for descriptive pages
 X add timestamps
-- join table for counties
+X join table for counties
 
 
 Look at these web sites

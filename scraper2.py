@@ -13,7 +13,7 @@ def create_apt_list(locations):
         doc = parse_source(html, encoding)
         #if doc.find(class_='col cols16 mts txtC srpPagination_list').text.strip() != "1":
         try:
-            print("Checking for multiple pages of listings in " + location)
+            print("Checking for multiple pages of listings in " + location.replace("_", " "))
             pages = int(doc.find(class_='col cols16 mts txtC srpPagination_list').text.strip()[-1])
             page = 1
             while page <= pages:
@@ -21,7 +21,7 @@ def create_apt_list(locations):
                                           '/APARTMENT_COMMUNITY_type/' + str(page) + '_p')
                 page += 1
         except AttributeError:
-            print("Problem Here: " + location)
+            print("Problem Here: " + location.replace("_", " "))
 
 
 def fetch_search_results(query=None, minAsk=None, maxAsk=None, bedrooms=None, location=None):
@@ -62,36 +62,37 @@ def find_stripped(soup): #, what):
 def write_listing(apt):
     specialAttr = find_stripped(apt.find("small", class_="typeCaps typeEmphasize mrm h7"))
     place = find_stripped(apt.find("div", class_="man typeTruncate"))
-    address = find_stripped(apt.find(itemprop="streetAddress")) + find_stripped(apt.find(itemprop="addressLocality")) +\
-        " " + find_stripped(apt.find(itemprop="postalCode"))
-    xAddress = find_stripped(apt.find(itemprop="streetAddress")).replace(",","")
-    xlocale = find_stripped(apt.find(itemprop="addressLocality"))
-    xZip = find_stripped(apt.find(itemprop="postalCode"))
-    #link = apt.find("a", "primaryLink pdpLink activeLink").text.strip()
-    location = find_stripped(apt.find(itemprop="addressLocality"))
+    # address = find_stripped(apt.find(itemprop="streetAddress")) + find_stripped(apt.find(itemprop="addressLocality")) +\
+    #     " " + find_stripped(apt.find(itemprop="postalCode"))
+    address = find_stripped(apt.find(itemprop="streetAddress")).replace(",", "")
+    # xlocale = find_stripped(apt.find(itemprop="addressLocality"))
+    zipcode = find_stripped(apt.find(itemprop="postalCode"))
+    link = apt.find_all(class_="primaryLink pdpLink activeLink")[0].get('href')
+    city = find_stripped(apt.find(itemprop="addressLocality"))
     aptTypes = apt.find_all("div", class_="col cols17")
     for aptType in aptTypes:
         bedrooms = find_stripped(aptType.find("div", class_="txtL col cols7"))
         if bedrooms == "Studio":
-            xbedrooms = "0"
+            bedrooms = "0"
         else:
-            xbedrooms = bedrooms[0]
-        bathrooms = find_stripped(aptType.find("div", class_="txtC col cols4"))
-        xbathrooms = bathrooms[0]
-        sqft = find_stripped(aptType.find("div", class_="txtC col cols6"))
-        xsqft = sqft.replace("+", "")[:-4]
-        price = aptType.find_all("div", class_="txtC col cols6")[1].text.strip()
-        xprice = price.replace("+", "")[1:-3]
-        writer.writerow(price + "," + sqft + "," + place + "," + address.replace(",", " ") + "," +
-                        bedrooms + "," + bathrooms + "," + specialAttr + "," + location) # + ", " + link)
-        xInsert = [xprice, xsqft, place, xAddress, xZip, xlocale, xbedrooms, xbathrooms, specialAttr, location]
-        c.execute("INSERT INTO aptSummary (price, sqft, place, address, zip, locale, bedrooms, bathrooms, specAttr, "
-                  "location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", xInsert)
-        # c.execute("INSERT INTO aptSummary (price, sqft, place, address, zip, locale, bedrooms, bathrooms, specAttr, "
-        #           "location) VALUES (" + xprice + ", " + xsqft + ", " + place + ", " + xAddress + ", " + xZip +
-        #           ", " + xlocale + ", " + xbedrooms + ", " + xbathrooms + ", " + specialAttr + ", " + location + ");")
-        conn.commit()
+            bedrooms = bedrooms[0]
+        bathrooms = find_stripped(aptType.find("div", class_="txtC col cols4"))[0]
+        sqft = find_stripped(aptType.find("div", class_="txtC col cols6")).replace("+", "")[:-4]
+        price = aptType.find_all("div", class_="txtC col cols6")[1].text.strip().replace("+", "")[1:-3]
+        write_db(price, sqft, place, address, zipcode, city, bedrooms, bathrooms, specialAttr, link)
+        write_csv(price, sqft, place, address, zipcode, city, bedrooms, bathrooms, specialAttr, link)
 
+
+def write_csv(price, sqft, place, address, zipcode, city, bedrooms, bathrooms, specialAttr, link):
+    writer.writerow(price + "," + sqft + "," + place + "," + address + "," + zipcode + "," + city + ", " +
+                    bedrooms + "," + bathrooms + "," + specialAttr + ", " + link)
+
+
+def write_db(price, sqft, place, address, zipcode, city, bedrooms, bathrooms, specialAttr, link):
+    Insert = [price, sqft, place, address, zipcode, city, bedrooms, bathrooms, specialAttr, link]
+    c.execute("INSERT INTO aptSummary (price, sqft, place, address, zipcode, city, bedrooms, bathrooms, specAttr, link)"
+              " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ? )", Insert)
+    conn.commit()
 
 if __name__ == '__main__':
     locations = ['Miami,FL', 'Fort_Lauderdale,FL', 'West_Palm_Beach,FL', 'Tampa,FL',
