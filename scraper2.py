@@ -6,6 +6,7 @@ apt_location_pages = []
 conn = sqlite3.connect("apartment_data.db")
 c = conn.cursor()
 
+
 def create_apt_list(locations):
     for location in locations:
         loc_link = 'http://www.trulia.com/for_rent/' + location + '/APARTMENT_COMMUNITY_type'

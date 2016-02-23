@@ -1,0 +1,5 @@
+CREATE TABLE "aptDetails" ("storage" BOOL, "fitness_center" BOOL, "elevator" BOOL, "spa" BOOL, "tennis_court" BOOL, "club_house" BOOL, "garbage_disposal" BOOL, "pool" BOOL, "dishwasher" BOOL, "washing_mach" BOOL, "dryer" BOOL, "microwave" BOOL, "ac " BOOL, "sauna" BOOL, "stamp" DATETIME DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE "aptSummary" ("price" INTEGER, "sqft" INTEGER, "place" VARCHAR, "address" VARCHAR, "zipcode" VARCHAR, "city" VARCHAR, "bedrooms" INTEGER, "bathrooms" INTEGER, "specAttr" VARCHAR, "link" VARCHAR, "timestamp" DATETIME DEFAULT CURRENT_TIMESTAMP; --,unique (price, sqft, place, address, zipcode, city, bedrooms, bathrooms, specAttr));
+CREATE TABLE "aptSummary2" ("price" INTEGER, "sqft" INTEGER, "place" VARCHAR, "address" VARCHAR, "zipcode" VARCHAR, "city" VARCHAR, "bedrooms" INTEGER, "bathrooms" INTEGER, "specAttr" VARCHAR, "link" VARCHAR, "timestamp" DATETIME DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE "county" ("zipcode" VARCHAR,"city" VARCHAR DEFAULT (null) ,"county" VARCHAR DEFAULT (null) );
+CREATE VIEW "Summary_County" AS SELECT * FROM aptSummary JOIN county ON aptsummary.zipcode = county.zipcode;
